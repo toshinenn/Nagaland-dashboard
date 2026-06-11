@@ -3,12 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- PERSON 1: Change this title -->
   <title>Annual Report 2023 — Nagaland</title>
-
-  <!-- SheetJS: reads .xlsx files in the browser, no backend needed -->
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -18,7 +13,6 @@
       min-height: 100vh;
     }
 
-    /* ── Top bar ── */
     .topbar {
       background: #1a2e4a;
       color: white;
@@ -26,7 +20,6 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      flex-wrap: wrap;
     }
 
     .topbar a {
@@ -35,15 +28,12 @@
       font-size: 0.85rem;
     }
 
-    .topbar a:hover { text-decoration: underline; }
-
     .topbar h1 {
       font-size: 1rem;
       font-weight: 600;
       flex: 1;
     }
 
-    /* ── Controls bar ── */
     .controls {
       background: #ffffff;
       padding: 14px 24px;
@@ -67,13 +57,8 @@
       font-size: 0.88rem;
       color: #1e293b;
       background: white;
-      min-width: 220px;
+      min-width: 180px;
       cursor: pointer;
-    }
-
-    .controls select:focus {
-      outline: none;
-      border-color: #2563eb;
     }
 
     #sheet-info {
@@ -82,10 +67,7 @@
       color: #94a3b8;
     }
 
-    /* ── Main content ── */
-    .content {
-      padding: 24px;
-    }
+    .content { padding: 24px; }
 
     #sheet-title {
       font-size: 0.95rem;
@@ -94,7 +76,6 @@
       margin-bottom: 16px;
     }
 
-    /* ── Table wrapper: scrollable ── */
     .table-wrap {
       overflow-x: auto;
       background: white;
@@ -108,10 +89,7 @@
       font-size: 0.82rem;
     }
 
-    thead tr {
-      background: #1a2e4a;
-      color: white;
-    }
+    thead tr { background: #1a2e4a; color: white; }
 
     thead th {
       padding: 10px 14px;
@@ -130,7 +108,6 @@
       color: #334155;
     }
 
-    /* ── States ── */
     #status {
       padding: 40px;
       text-align: center;
@@ -141,127 +118,126 @@
 </head>
 <body>
 
-  <!-- Top navigation bar -->
   <div class="topbar">
     <a href="../index.html">← Home</a>
-    <!-- PERSON 1: Change this heading to match your file -->
     <h1>📊 Annual Report 2023 — Nagaland</h1>
   </div>
 
-  <!-- Sheet selector -->
   <div class="controls">
-    <label for="sheet-select">Sheet:</label>
-    <select id="sheet-select" disabled>
-      <option>Loading...</option>
+    <label for="district-select">District:</label>
+    <select id="district-select">
+      <option value="">All Districts</option>
     </select>
+
+    <label for="area-filter">Area:</label>
+    <select id="area-filter">
+      <option value="">All</option>
+      <option value="Rural">Rural</option>
+      <option value="Urban">Urban</option>
+    </select>
+
     <span id="sheet-info"></span>
   </div>
 
-  <!-- Table area -->
   <div class="content">
     <div id="sheet-title"></div>
-    <div id="status">Loading Excel file…</div>
+    <div id="status">Loading...</div>
     <div class="table-wrap" id="table-container"></div>
   </div>
 
   <script>
-    // ─────────────────────────────────────────────
-    // PERSON 1: Change this to your Excel filename
-    // Make sure the .xlsx file is in the SAME folder as this index.html
-    const EXCEL_FILE = 'Tables_Annual_Report_2023_(Nagaland).xlsx';
-    // ─────────────────────────────────────────────
+    const API = 'http://localhost:5000';
 
-    let workbook = null;
+    const districtSelect = document.getElementById('district-select');
+    const areaFilter     = document.getElementById('area-filter');
+    const container      = document.getElementById('table-container');
+    const status         = document.getElementById('status');
+    const sheetTitle     = document.getElementById('sheet-title');
+    const sheetInfo      = document.getElementById('sheet-info');
 
-    const select      = document.getElementById('sheet-select');
-    const container   = document.getElementById('table-container');
-    const status      = document.getElementById('status');
-    const sheetTitle  = document.getElementById('sheet-title');
-    const sheetInfo   = document.getElementById('sheet-info');
+    // Load districts into dropdown
+    async function loadDistricts() {
+      const res       = await fetch(`${API}/api/districts`);
+      const districts = await res.json();
 
-    // Load the Excel file when the page opens
-    async function loadWorkbook() {
-      try {
-        const res = await fetch(EXCEL_FILE);
-        if (!res.ok) throw new Error(`Could not load file: ${res.status}`);
+      districts.forEach(d => {
+        const opt       = document.createElement('option');
+        opt.value       = d.id;
+        opt.textContent = d.name;
+        districtSelect.appendChild(opt);
+      });
 
-        const buffer  = await res.arrayBuffer();
-        workbook      = XLSX.read(buffer, { type: 'array' });
-
-        // Populate the dropdown with sheet names
-        select.innerHTML = '';
-        workbook.SheetNames.forEach(name => {
-          const opt   = document.createElement('option');
-          opt.value   = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-
-        select.disabled = false;
-        status.textContent = '';
-
-        // Auto-load the first sheet
-        renderSheet(workbook.SheetNames[0]);
-
-      } catch (err) {
-        status.textContent = `Error: ${err.message}. Make sure the .xlsx file is in the same folder.`;
-      }
+      loadStats();
     }
 
-    // Render a sheet as an HTML table
-    function renderSheet(sheetName) {
-      const sheet = workbook.Sheets[sheetName];
-      const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
+    // Fetch stats from API and render
+    async function loadStats() {
+      status.textContent  = 'Loading...';
       container.innerHTML = '';
 
-      if (!rows || rows.length === 0) {
-        container.innerHTML = '<p style="padding:20px;color:#94a3b8">This sheet appears to be empty.</p>';
+      const districtId = districtSelect.value;
+      const areaType   = areaFilter.value;
+
+      let url = `${API}/api/stats?`;
+      if (districtId) url += `district_id=${districtId}&`;
+      if (areaType)   url += `area_type=${areaType}`;
+
+      const res   = await fetch(url);
+      const stats = await res.json();
+
+      status.textContent         = '';
+      sheetTitle.textContent     = 'Vital Statistics — Registration Data 2023';
+      sheetInfo.textContent      = `${stats.length} records`;
+
+      if (stats.length === 0) {
+        container.innerHTML = '<p style="padding:20px;color:#94a3b8">No records found.</p>';
         return;
       }
 
-      // Update info labels
-      sheetTitle.textContent = sheetName;
-      sheetInfo.textContent  = `${rows.length} rows`;
-
-      const table = document.createElement('table');
-
-      // First row → table header
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      (rows[0] || []).forEach(cell => {
-        const th = document.createElement('th');
-        th.textContent = cell ?? '';
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-
-      // Remaining rows → table body
-      const tbody = document.createElement('tbody');
-      rows.slice(1).forEach(row => {
-        const tr = document.createElement('tr');
-        // Use length of header row to keep columns aligned
-        const colCount = rows[0].length;
-        for (let i = 0; i < colCount; i++) {
-          const td = document.createElement('td');
-          td.textContent = row[i] ?? '';
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-
-      container.appendChild(table);
+      renderTable(stats);
     }
 
-    // When user picks a different sheet
-    select.addEventListener('change', () => {
-      renderSheet(select.value);
-    });
+    // Render JSON array as HTML table
+    function renderTable(data) {
+  // Define the order you want
+  const headers = [
+    'district', 'area_type', 'year',
+    'census_population', 'reg_units',
+    'returns_due', 'returns_received',
+    'est_midyear_pop_total', 'est_midyear_pop_adjusted'
+  ];
 
-    // Kick everything off
-    loadWorkbook();
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const tbody = document.createElement('tbody');
+
+  const headerRow = document.createElement('tr');
+  headers.forEach(h => {
+    const th       = document.createElement('th');
+    th.textContent = h.replace(/_/g, ' ').toUpperCase();
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    headers.forEach(h => {
+      const td       = document.createElement('td');
+      td.textContent = row[h] ?? '';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+    districtSelect.addEventListener('change', loadStats);
+    areaFilter.addEventListener('change', loadStats);
+
+    loadDistricts();
   </script>
 
 </body>

@@ -26,7 +26,6 @@ def clean_float(value):
     except ValueError:
         return None
 
-
 def clean_int(value):
     num = clean_float(value)
     if num is None:

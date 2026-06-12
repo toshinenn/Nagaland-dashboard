@@ -164,105 +164,138 @@
     <div class="table-wrap" id="table-container"></div>
   </div>
 
-  <script>
-    // ─────────────────────────────────────────────
-    // PERSON 1: Change this to your Excel filename
-    // Make sure the .xlsx file is in the SAME folder as this index.html
-    const EXCEL_FILE = '1_PopulationBirths_DeathsRelated_2024.xlsx';
-    // ─────────────────────────────────────────────
+ <script>
+  const container = document.getElementById("table-container");
+  const status = document.getElementById("status");
+  const sheetTitle = document.getElementById("sheet-title");
+  const sheetInfo = document.getElementById("sheet-info");
+  const select = document.getElementById("sheet-select");
 
-    let workbook = null;
-
-    const select      = document.getElementById('sheet-select');
-    const container   = document.getElementById('table-container');
-    const status      = document.getElementById('status');
-    const sheetTitle  = document.getElementById('sheet-title');
-    const sheetInfo   = document.getElementById('sheet-info');
-
-    // Load the Excel file when the page opens
-    async function loadWorkbook() {
-      try {
-        const res = await fetch(EXCEL_FILE);
-        if (!res.ok) throw new Error(`Could not load file: ${res.status}`);
-
-        const buffer  = await res.arrayBuffer();
-        workbook      = XLSX.read(buffer, { type: 'array' });
-
-        // Populate the dropdown with sheet names
-        select.innerHTML = '';
-        workbook.SheetNames.forEach(name => {
-          const opt   = document.createElement('option');
-          opt.value   = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-
-        select.disabled = false;
-        status.textContent = '';
-
-        // Auto-load the first sheet
-        renderSheet(workbook.SheetNames[0]);
-
-      } catch (err) {
-        status.textContent = `Error: ${err.message}. Make sure the .xlsx file is in the same folder.`;
-      }
+  const p1Data = [
+    {
+      sl: 1,
+      year: 1971,
+      rural_population: 435982,
+      rural_sex_ratio: 928,
+      urban_population: 29073,
+      urban_sex_ratio: 928,
+      total_population: 465055,
+      total_sex_ratio: 928,
+      growth_female: 39.88,
+      growth_male: 47.22,
+      growth_person: 51.64
+    },
+    {
+      sl: 2,
+      year: 1981,
+      rural_population: 602244,
+      rural_sex_ratio: 899,
+      urban_population: 52452,
+      urban_sex_ratio: 899,
+      total_population: 654696,
+      total_sex_ratio: 899,
+      growth_female: 50.05,
+      growth_male: 68.84,
+      growth_person: 77.49
+    },
+    {
+      sl: 3,
+      year: 1991,
+      rural_population: 819486,
+      rural_sex_ratio: 917,
+      urban_population: 181837,
+      urban_sex_ratio: 917,
+      total_population: 1001323,
+      total_sex_ratio: 917,
+      growth_female: 56.08,
+      growth_male: 74.96,
+      growth_person: 120.95
+    },
+    {
+      sl: 4,
+      year: 2001,
+      rural_population: 1434561,
+      rural_sex_ratio: 916,
+      urban_population: 212688,
+      urban_sex_ratio: 916,
+      total_population: 1647249,
+      total_sex_ratio: 916,
+      growth_female: 64.53,
+      growth_male: 82.99,
+      growth_person: 119.90
+    },
+    {
+      sl: 5,
+      year: 2011,
+      rural_population: 1407536,
+      rural_sex_ratio: 940,
+      urban_population: 570253,
+      urban_sex_ratio: 940,
+      total_population: 1978502,
+      total_sex_ratio: 940,
+      growth_female: "(-)0.58",
+      growth_male: 3.29,
+      growth_person: 11.16
     }
+  ];
 
-    // Render a sheet as an HTML table
-    function renderSheet(sheetName) {
-      const sheet = workbook.Sheets[sheetName];
-      const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  function showP1Table() {
+    status.style.display = "none";
+    select.disabled = false;
+    select.innerHTML = `<option>P-1</option>`;
 
-      container.innerHTML = '';
+    sheetTitle.innerHTML = `
+      Table 2.1: Rural-Urban Distribution of Sex Ratio and Decadal Growth Rate
+      <br>
+      <span style="font-weight:400;">of Population of Post Statehood Nagaland</span>
+    `;
 
-      if (!rows || rows.length === 0) {
-        container.innerHTML = '<p style="padding:20px;color:#94a3b8">This sheet appears to be empty.</p>';
-        return;
-      }
+    sheetInfo.textContent = `${p1Data.length} records`;
 
-      // Update info labels
-      sheetTitle.textContent = sheetName;
-      sheetInfo.textContent  = `${rows.length} rows`;
+    container.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Sl. No.</th>
+            <th>Year</th>
+            <th>Rural Population</th>
+            <th>Rural Sex Ratio</th>
+            <th>Urban Population</th>
+            <th>Urban Sex Ratio</th>
+            <th>Total Population</th>
+            <th>Total Sex Ratio</th>
+            <th>Female Growth %</th>
+            <th>Male Growth %</th>
+            <th>Person Growth %</th>
+          </tr>
+        </thead>
 
-      const table = document.createElement('table');
+        <tbody>
+          ${p1Data.map(row => `
+            <tr>
+              <td>${row.sl}</td>
+              <td>${row.year}</td>
+              <td>${row.rural_population.toLocaleString()}</td>
+              <td>${row.rural_sex_ratio}</td>
+              <td>${row.urban_population.toLocaleString()}</td>
+              <td>${row.urban_sex_ratio}</td>
+              <td>${row.total_population.toLocaleString()}</td>
+              <td>${row.total_sex_ratio}</td>
+              <td>${row.growth_female}</td>
+              <td>${row.growth_male}</td>
+              <td>${row.growth_person}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
 
-      // First row → table header
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      (rows[0] || []).forEach(cell => {
-        const th = document.createElement('th');
-        th.textContent = cell ?? '';
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+      <p style="padding:14px; color:#334155;">
+        <b>Source:</b> Directorate of Census Operation, Nagaland: Kohima
+      </p>
+    `;
+  }
 
-      // Remaining rows → table body
-      const tbody = document.createElement('tbody');
-      rows.slice(1).forEach(row => {
-        const tr = document.createElement('tr');
-        // Use length of header row to keep columns aligned
-        const colCount = rows[0].length;
-        for (let i = 0; i < colCount; i++) {
-          const td = document.createElement('td');
-          td.textContent = row[i] ?? '';
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-
-      container.appendChild(table);
-    }
-
-    // When user picks a different sheet
-    select.addEventListener('change', () => {
-      renderSheet(select.value);
-    });
-
-    // Kick everything off
-    loadWorkbook();
-  </script>
-
+  showP1Table();
+</script>
 </body>
 </html>

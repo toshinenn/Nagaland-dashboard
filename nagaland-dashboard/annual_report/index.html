@@ -146,7 +146,7 @@
   </div>
 
   <script>
-    const API = 'http://localhost:5000';
+   
 
     const districtSelect = document.getElementById('district-select');
     const areaFilter     = document.getElementById('area-filter');
@@ -156,9 +156,7 @@
     const sheetInfo      = document.getElementById('sheet-info');
 
     // Load districts into dropdown
-    async function loadDistricts() {
-      const res       = await fetch(`${API}/api/districts`);
-      const districts = await res.json();
+    
 
       districts.forEach(d => {
         const opt       = document.createElement('option');
@@ -237,7 +235,7 @@
     districtSelect.addEventListener('change', loadStats);
     areaFilter.addEventListener('change', loadStats);
 
-    loadDistricts();
+    loadWorkbook();
   </script>
 
 </body>
